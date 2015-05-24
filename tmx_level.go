@@ -146,7 +146,6 @@ func createLevelFromTmx(r Resource) (*Level, error) {
 	}
 
 	lvl.Tiles = createLevelTiles(lvl, lvlLayers, lvlTileset)
-	println(tlvl.ObjGroups[0].Objects[0].Polylines[0].Points)
 
 	return lvl, nil
 }

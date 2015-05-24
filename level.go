@@ -8,7 +8,7 @@ type Level struct {
 	Tiles      []*tile
 }
 
-type Line struct {
+type line struct {
 	P1 Point
 	P2 Point
 }
