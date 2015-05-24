@@ -136,6 +136,10 @@ func (rs *RenderSystem) Update(entity *Entity, dt float32) {
 				Wo.Batch().Draw(tile.Image, (tile.X+space.Position.X)-Cam.X, (tile.Y+space.Position.Y)-Cam.Y, 0, 0, 1, 1, 0, 0xffffff, 1)
 			}
 		}
+	case *Panel:
+
+		panel := render.Display.(*Panel)
+		Wo.Batch().Draw(panel.r, (panel.Point.X + space.Position.X), (panel.Point.Y + space.Position.Y), 0, 0, 1, 1, 0, panel.bg, 1)
 	}
 }
 
