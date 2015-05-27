@@ -15,6 +15,7 @@ var (
 	Gl        = gl
 	Cam       *Camera
 	Wo        Responder
+	Cursor    *Mouse
 )
 
 func Open(title string, width, height int, fullscreen bool, r Responder) {
@@ -24,6 +25,7 @@ func Open(title string, width, height int, fullscreen bool, r Responder) {
 	Files = NewLoader()
 	SetCamera(&Camera{})
 	Wo = r
+	Cursor = &Mouse{}
 	run(title, width, height, fullscreen)
 }
 

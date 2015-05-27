@@ -145,6 +145,16 @@ func NewRegion(texture *Texture, x, y, w, h int) *Region {
 	return &Region{texture, u, v, u2, v2, width, height}
 }
 
+func (r *Region) UpdateTexture(tex *Texture) {
+	r.texture = tex
+
+	invTexWidth := 1.0 / float32(tex.Width())
+	invTexHeight := 1.0 / float32(tex.Height())
+
+	r.u2 = float32(r.width) * invTexWidth
+	r.v2 = float32(r.height) * invTexHeight
+}
+
 func (r *Region) Width() float32 {
 	return float32(r.width)
 }

@@ -136,10 +136,45 @@ func (rs *RenderSystem) Update(entity *Entity, dt float32) {
 				Wo.Batch().Draw(tile.Image, (tile.X+space.Position.X)-Cam.X, (tile.Y+space.Position.Y)-Cam.Y, 0, 0, 1, 1, 0, 0xffffff, 1)
 			}
 		}
-	case *Panel:
+	case *ButtonPanel:
+		btn := render.Display.(*ButtonPanel)
 
+		btnX := btn.Point.X - Cam.X
+		btnY := btn.Point.Y - Cam.Y
+
+		Wo.Batch().Draw(btn.r, btnX, btnY, 0, 0, 1, 1, 0, btn.Panel.Bg, 1)
+
+		if (Cursor.Point.X >= btnX && Cursor.Point.X <= btnX+btn.r.width) && (Cursor.Point.Y >= btnY && Cursor.Point.Y <= btnY+btn.r.height) {
+			btn.IsHovered = true
+			if Cursor.Left && !Cursor.Click {
+				btn.OnClick()
+				Cursor.Click = true
+			} else if !Cursor.Left && Cursor.Click {
+				Cursor.Click = false
+			}
+		} else {
+			btn.IsHovered = false
+		}
+
+		if btn.IsHovered && !btn.hovered {
+			btn.OnHover()
+			btn.hovered = true
+		} else if !btn.IsHovered && btn.hovered {
+			btn.OffHover()
+			btn.hovered = false
+		}
+
+	case *Panel:
 		panel := render.Display.(*Panel)
-		Wo.Batch().Draw(panel.r, (panel.Point.X + space.Position.X), (panel.Point.Y + space.Position.Y), 0, 0, 1, 1, 0, panel.bg, 1)
+		if panel.Parent == nil {
+
+			Wo.Batch().Draw(panel.r, panel.Point.X-Cam.X, panel.Point.Y-Cam.Y, 0, 0, 1, 1, 0, panel.Bg, 1)
+
+			for _, child := range panel.Children {
+				Wo.Batch().Draw(child.r, (panel.Point.X-Cam.X)+child.Point.X, (panel.Point.Y-Cam.Y)+child.Point.Y, 0, 0, 1, 1, 0, child.Bg, 1)
+			}
+		}
+
 	}
 }
 
