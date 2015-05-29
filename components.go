@@ -5,9 +5,11 @@ type Component interface {
 }
 
 type SpaceComponent struct {
-	Position Point
-	Width    float32
-	Height   float32
+	Position  Point
+	Previous  Point
+	Predicted Point
+	Width     float32
+	Height    float32
 }
 
 func (sc SpaceComponent) Name() string {
