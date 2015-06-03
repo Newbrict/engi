@@ -27,6 +27,19 @@ type Font struct {
 	ttf  *truetype.Font
 }
 
+func NewFont(url string, size float64, background Color, foreground Color) *Font {
+	f := &Font{
+		URL:  url,
+		Size: size,
+		BG:   background,
+		FG:   foreground,
+	}
+
+	f.Create()
+
+	return f
+}
+
 func (f *Font) Create() {
 	url := f.URL
 
@@ -78,7 +91,7 @@ func (f *Font) TextDimensions(text string) (int, int, int) {
 	return int(totalWidth), int(totalHeight), int(maxYBearing)
 }
 
-func (f *Font) Render(text string) *Texture {
+func (f *Font) Texture(text string) *Texture {
 	width, height, yBearing := f.TextDimensions(text)
 	font := f.ttf
 	size := f.Size
