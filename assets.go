@@ -136,22 +136,21 @@ func (r *Region) Render(b *Batch, render *RenderComponent, space *SpaceComponent
 }
 
 func NewRegion(texture *Texture, x, y, w, h int) *Region {
-	var u, v, u2, v2, width, height, invTexWidth, invTexHeight float32
 
-	width = float32(math.Abs(float64(w)))
-	height = float32(math.Abs(float64(h)))
+	width := float32(math.Abs(float64(w)))
+	height := float32(math.Abs(float64(h)))
 
 	if texture == nil {
 		texture = NewEmptyTexture()
 	}
 
-	invTexWidth = 1.0 / float32(texture.Width())
-	invTexHeight = 1.0 / float32(texture.Height())
+	invTexWidth := 1.0 / float32(texture.Width())
+	invTexHeight := 1.0 / float32(texture.Height())
 
-	u = float32(x) * invTexWidth
-	v = float32(y) * invTexHeight
-	u2 = float32(x+w) * invTexWidth
-	v2 = float32(y+h) * invTexHeight
+	u := float32(x) * invTexWidth
+	v := float32(y) * invTexHeight
+	u2 := float32(x+w) * invTexWidth
+	v2 := float32(y+h) * invTexHeight
 
 	return &Region{texture, u, v, u2, v2, width, height}
 }

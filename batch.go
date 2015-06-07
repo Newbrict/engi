@@ -214,12 +214,7 @@ func (b *Batch) Draw(r Drawable, x, y, originX, originY, scaleX, scaleY, rotatio
 	x4 += worldOriginX
 	y4 += worldOriginY
 
-	red := uint32(color.R)
-	green := uint32(color.G) * 256
-	blue := uint32(color.B) * 256 * 256
-	alpha := uint32(color.A) * 256 * 256 * 256
-
-	tint := math.Float32frombits((red | green | blue | alpha) & 0xfeffffff)
+	tint := color.Float32()
 
 	idx := b.index * 20
 
