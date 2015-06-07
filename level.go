@@ -6,11 +6,22 @@ type Level struct {
 	TileWidth  int
 	TileHeight int
 	Tiles      []*tile
+	LineBounds []Line
+	Images     []*tile
 }
 
-type line struct {
-	P1 Point
-	P2 Point
+func (lvl *Level) Render(b *Batch, render *RenderComponent, space *SpaceComponent) {
+	for _, img := range lvl.Images {
+		if img.Image != nil {
+			Wo.Batch().Draw(img.Image, img.X-Cam.pos.X, img.Y-Cam.pos.Y, 0, 0, 1, 1, 0, White)
+		}
+	}
+
+	for _, tile := range lvl.Tiles {
+		if tile.Image != nil {
+			Wo.Batch().Draw(tile.Image, (tile.X+space.Position.X)-Cam.pos.X, (tile.Y+space.Position.Y)-Cam.pos.Y, 0, 0, 1, 1, 0, White)
+		}
+	}
 }
 
 type tile struct {

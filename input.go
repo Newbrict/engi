@@ -7,6 +7,7 @@ package engi
 type Action int
 type Key int
 type Modifier int
+type MouseButton int
 
 var (
 	MOVE    = Action(0)
@@ -16,6 +17,12 @@ var (
 	CONTROL = Modifier(0x0002)
 	ALT     = Modifier(0x0004)
 	SUPER   = Modifier(0x0008)
+)
+
+var (
+	MouseLeft   = MouseButton(0)
+	MouseRight  = MouseButton(1)
+	MouseMiddle = MouseButton(2)
 )
 
 var (

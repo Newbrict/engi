@@ -124,7 +124,7 @@ func (b *Batch) SetProjection(width, height float32) {
 	b.projY = height / 2
 }
 
-func (b *Batch) Draw(r Drawable, x, y, originX, originY, scaleX, scaleY, rotation float32, color uint32, transparency float32) {
+func (b *Batch) Draw(r Drawable, x, y, originX, originY, scaleX, scaleY, rotation float32, color Color) {
 	if !b.drawing {
 		log.Fatal("Batch.Begin() must be called first")
 	}
@@ -214,11 +214,12 @@ func (b *Batch) Draw(r Drawable, x, y, originX, originY, scaleX, scaleY, rotatio
 	x4 += worldOriginX
 	y4 += worldOriginY
 
-	red := (color >> 16) & 0xFF
-	green := ((color >> 8) & 0xFF) << 8
-	blue := (color & 0xFF) << 16
-	alpha := uint32(transparency*255.0) << 24
-	tint := math.Float32frombits((alpha | blue | green | red) & 0xfeffffff)
+	red := uint32(color.R)
+	green := uint32(color.G) * 256
+	blue := uint32(color.B) * 256 * 256
+	alpha := uint32(color.A) * 256 * 256 * 256
+
+	tint := math.Float32frombits((red | green | blue | alpha) & 0xfeffffff)
 
 	idx := b.index * 20
 

@@ -96,86 +96,77 @@ func (cs CollisionSystem) Name() string {
 	return "CollisionSystem"
 }
 
+type PriorityLevel int
+
+const (
+	HUDGround    PriorityLevel = 4
+	Foreground   PriorityLevel = 3
+	MiddleGround PriorityLevel = 2
+	ScenicGround PriorityLevel = 1
+	Background   PriorityLevel = 0
+)
+
 type RenderSystem struct {
+	renders map[PriorityLevel][]*Entity
+	changed bool
 	*System
 }
 
 func (rs *RenderSystem) New() {
+	rs.renders = make(map[PriorityLevel][]*Entity)
 	rs.System = &System{}
 }
 
+func (rs *RenderSystem) AddEntity(e *Entity) {
+	rs.changed = true
+	rs.System.AddEntity(e)
+}
+
 func (rs RenderSystem) Pre() {
-
-}
-
-func (rs RenderSystem) Post() {
-}
-
-func (rs *RenderSystem) Update(entity *Entity, dt float32) {
-	var render *RenderComponent
-	var space *SpaceComponent
-
-	if !entity.GetComponent(&render) || !entity.GetComponent(&space) {
+	if !rs.changed {
 		return
 	}
 
-	switch render.Display.(type) {
-	case Drawable:
-		drawable := render.Display.(Drawable)
-		Wo.Batch().Draw(drawable, space.Position.X-Cam.X, space.Position.Y-Cam.Y, 0, 0, render.Scale.X, render.Scale.Y, 0, 0xffffff, 1)
-	case *Font:
-		font := render.Display.(*Font)
-		font.Print(Wo.Batch(), render.Label, space.Position.X-Cam.X, space.Position.Y-Cam.Y, 0xffffff)
-	case *Text:
-		text := render.Display.(*Text)
-		text.Draw(Wo.Batch(), space.Position)
-	case *Level:
-		level := render.Display.(*Level)
-		for _, tile := range level.Tiles {
-			if tile.Image != nil {
-				Wo.Batch().Draw(tile.Image, (tile.X+space.Position.X)-Cam.X, (tile.Y+space.Position.Y)-Cam.Y, 0, 0, 1, 1, 0, 0xffffff, 1)
+	delete(rs.renders, HUDGround)
+	delete(rs.renders, Foreground)
+	delete(rs.renders, MiddleGround)
+	delete(rs.renders, ScenicGround)
+	delete(rs.renders, Background)
+}
+
+type Renderable interface {
+	Render(b *Batch, render *RenderComponent, space *SpaceComponent)
+}
+
+func (rs *RenderSystem) Post() {
+	for i := 4; i >= 0; i-- {
+		for _, entity := range rs.renders[PriorityLevel(i)] {
+			var render *RenderComponent
+			var space *SpaceComponent
+
+			if !entity.GetComponent(&render) || !entity.GetComponent(&space) {
+				return
 			}
-		}
-	case *ButtonPanel:
-		btn := render.Display.(*ButtonPanel)
 
-		btnX := btn.Point.X - Cam.X
-		btnY := btn.Point.Y - Cam.Y
-
-		Wo.Batch().Draw(btn.r, btnX, btnY, 0, 0, 1, 1, 0, btn.Panel.Bg, 1)
-
-		if (Cursor.Point.X >= btnX && Cursor.Point.X <= btnX+btn.r.width) && (Cursor.Point.Y >= btnY && Cursor.Point.Y <= btnY+btn.r.height) {
-			btn.IsHovered = true
-			if Cursor.Left && !Cursor.Click {
-				btn.OnClick()
-				Cursor.Click = true
-			} else if !Cursor.Left && Cursor.Click {
-				Cursor.Click = false
-			}
-		} else {
-			btn.IsHovered = false
-		}
-
-		if btn.IsHovered && !btn.hovered {
-			btn.OnHover()
-			btn.hovered = true
-		} else if !btn.IsHovered && btn.hovered {
-			btn.OffHover()
-			btn.hovered = false
-		}
-
-	case *Panel:
-		panel := render.Display.(*Panel)
-		if panel.Parent == nil {
-
-			Wo.Batch().Draw(panel.r, panel.Point.X-Cam.X, panel.Point.Y-Cam.Y, 0, 0, 1, 1, 0, panel.Bg, 1)
-
-			for _, child := range panel.Children {
-				Wo.Batch().Draw(child.r, (panel.Point.X-Cam.X)+child.Point.X, (panel.Point.Y-Cam.Y)+child.Point.Y, 0, 0, 1, 1, 0, child.Bg, 1)
-			}
+			render.Display.Render(Wo.Batch(), render, space)
 		}
 
 	}
+
+	rs.changed = false
+}
+
+func (rs *RenderSystem) Update(entity *Entity, dt float32) {
+	if !rs.changed {
+		return
+	}
+
+	var render *RenderComponent
+	if !entity.GetComponent(&render) {
+		return
+	}
+
+	rs.renders[render.Priority] = append(rs.renders[render.Priority], entity)
 }
 
 func (rs RenderSystem) Name() string {

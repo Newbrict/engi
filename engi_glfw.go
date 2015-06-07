@@ -16,11 +16,20 @@ import (
 	"os"
 	"runtime"
 
-	"azul3d.org/native/glfw.v4"
 	"github.com/ajhager/webgl"
+	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
-var window *glfw.Window
+var (
+	window *glfw.Window
+
+	Arrow     *glfw.Cursor
+	IBeam     *glfw.Cursor
+	Crosshair *glfw.Cursor
+	Hand      *glfw.Cursor
+	HResize   *glfw.Cursor
+	VResize   *glfw.Cursor
+)
 
 // fatalErr calls log.Fatal with the given error if it is non-nil.
 func fatalErr(err error) {
@@ -30,62 +39,57 @@ func fatalErr(err error) {
 }
 
 func run(title string, width, height int, fullscreen bool) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
 
-	fatalErr(glfw.Init())
+	err := glfw.Init()
+	fatalErr(err)
 
-	monitor, err := glfw.GetPrimaryMonitor()
-	fatalErr(err)
-	mode, err := monitor.GetVideoMode()
-	fatalErr(err)
+	defer glfw.Terminate()
+
+	Arrow = glfw.CreateStandardCursor(int(glfw.ArrowCursor))
+	Hand = glfw.CreateStandardCursor(int(glfw.HandCursor))
+
+	monitor := glfw.GetPrimaryMonitor()
+	mode := monitor.GetVideoMode()
 
 	if fullscreen {
 		width = mode.Width
 		height = mode.Height
-		fatalErr(glfw.WindowHint(glfw.Decorated, 0))
+		glfw.WindowHint(glfw.Decorated, 0)
 	} else {
 		monitor = nil
 	}
 
-	fatalErr(glfw.WindowHint(glfw.ContextVersionMajor, 2))
-	fatalErr(glfw.WindowHint(glfw.ContextVersionMinor, 1))
+	glfw.WindowHint(glfw.ContextVersionMajor, 2)
+	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 
 	window, err = glfw.CreateWindow(width, height, title, nil, nil)
 	fatalErr(err)
+
 	window.MakeContextCurrent()
 
 	if !fullscreen {
-		fatalErr(window.SetPosition((mode.Width-width)/2, (mode.Height-height)/2))
+		window.SetPos((mode.Width-width)/2, (mode.Height-height)/2)
 	}
 
-	width, height, err = window.GetFramebufferSize()
-	fatalErr(err)
+	width, height = window.GetFramebufferSize()
 
-	fatalErr(glfw.SwapInterval(1))
+	glfw.SwapInterval(1)
 
 	gl = webgl.NewContext()
-
 	gl.Viewport(0, 0, width, height)
 	window.SetFramebufferSizeCallback(func(window *glfw.Window, w, h int) {
-		width, height, err = window.GetFramebufferSize()
-		fatalErr(err)
+		width, height = window.GetFramebufferSize()
 		gl.Viewport(0, 0, width, height)
 		responder.Resize(w, h)
 	})
 
-	window.SetCursorPositionCallback(func(window *glfw.Window, x, y float64) {
-		responder.MouseUpdate(float32(x), float32(y), MOVE)
+	window.SetCursorPosCallback(func(window *glfw.Window, x, y float64) {
+		responder.Mouse(float32(x), float32(y), MOVE, MouseButton(-1))
 	})
 
 	window.SetMouseButtonCallback(func(window *glfw.Window, b glfw.MouseButton, a glfw.Action, m glfw.ModifierKey) {
-		x, y, err := window.GetCursorPosition()
-		fatalErr(err)
-		if a == glfw.Press {
-			responder.MouseUpdate(float32(x), float32(y), PRESS)
-		} else {
-			responder.MouseUpdate(float32(x), float32(y), RELEASE)
-		}
+		x, y := window.GetCursorPos()
+		responder.Mouse(float32(x), float32(y), Action(a), MouseButton(b))
 	})
 
 	window.SetScrollCallback(func(window *glfw.Window, xoff, yoff float64) {
@@ -93,6 +97,7 @@ func run(title string, width, height int, fullscreen bool) {
 	})
 
 	window.SetKeyCallback(func(window *glfw.Window, k glfw.Key, s int, a glfw.Action, m glfw.ModifierKey) {
+		responder.Key(Key(k), Action(a), Modifier(m))
 		key := Key(k)
 		if a == glfw.Press {
 			states[key] = true
@@ -101,7 +106,7 @@ func run(title string, width, height int, fullscreen bool) {
 		}
 	})
 
-	window.SetCharacterCallback(func(window *glfw.Window, char rune) {
+	window.SetCharCallback(func(window *glfw.Window, char rune) {
 		responder.Type(char)
 	})
 
@@ -112,36 +117,43 @@ func run(title string, width, height int, fullscreen bool) {
 	responder.Setup()
 
 	Wo.New()
-	shouldClose, err := window.ShouldClose()
+	shouldClose := window.ShouldClose()
 	for !shouldClose {
 		responder.Update(Time.Delta())
 		window.SwapBuffers()
 		glfw.PollEvents()
 		keysUpdate()
 		Time.Tick()
-		shouldClose, err = window.ShouldClose()
+		shouldClose = window.ShouldClose()
 	}
 
 	responder.Close()
 }
 
 func width() float32 {
-	width, _, err := window.GetSize()
-	fatalErr(err)
+	width, _ := window.GetSize()
 	return float32(width)
 }
 
 func height() float32 {
-	_, height, err := window.GetSize()
-	fatalErr(err)
+	_, height := window.GetSize()
 	return float32(height)
 }
 
 func exit() {
-	fatalErr(window.SetShouldClose(true))
+	window.SetShouldClose(true)
 }
 
 func init() {
+	runtime.LockOSThread()
+
+	MouseLeft = MouseButton(glfw.MouseButtonLeft)
+	MouseRight = MouseButton(glfw.MouseButtonRight)
+	MouseMiddle = MouseButton(glfw.MouseButtonMiddle)
+
+	PRESS = Action(glfw.Press)
+	RELEASE = Action(glfw.Release)
+
 	Dash = Key(glfw.KeyMinus)
 	Apostrophe = Key(glfw.KeyApostrophe)
 	Semicolon = Key(glfw.KeySemicolon)
@@ -228,22 +240,22 @@ func init() {
 	Y = Key(glfw.KeyY)
 	Z = Key(glfw.KeyZ)
 	NumLock = Key(glfw.KeyNumLock)
-	NumMultiply = Key(glfw.KeyKpMultiply)
-	NumDivide = Key(glfw.KeyKpDivide)
-	NumAdd = Key(glfw.KeyKpAdd)
-	NumSubtract = Key(glfw.KeyKpSubtract)
-	NumZero = Key(glfw.KeyKp0)
-	NumOne = Key(glfw.KeyKp1)
-	NumTwo = Key(glfw.KeyKp2)
-	NumThree = Key(glfw.KeyKp3)
-	NumFour = Key(glfw.KeyKp4)
-	NumFive = Key(glfw.KeyKp5)
-	NumSix = Key(glfw.KeyKp6)
-	NumSeven = Key(glfw.KeyKp7)
-	NumEight = Key(glfw.KeyKp8)
-	NumNine = Key(glfw.KeyKp9)
-	NumDecimal = Key(glfw.KeyKpDecimal)
-	NumEnter = Key(glfw.KeyKpEnter)
+	NumMultiply = Key(glfw.KeyKPMultiply)
+	NumDivide = Key(glfw.KeyKPDivide)
+	NumAdd = Key(glfw.KeyKPAdd)
+	NumSubtract = Key(glfw.KeyKPSubtract)
+	NumZero = Key(glfw.KeyKP0)
+	NumOne = Key(glfw.KeyKP1)
+	NumTwo = Key(glfw.KeyKP2)
+	NumThree = Key(glfw.KeyKP3)
+	NumFour = Key(glfw.KeyKP4)
+	NumFive = Key(glfw.KeyKP5)
+	NumSix = Key(glfw.KeyKP6)
+	NumSeven = Key(glfw.KeyKP7)
+	NumEight = Key(glfw.KeyKP8)
+	NumNine = Key(glfw.KeyKP9)
+	NumDecimal = Key(glfw.KeyKPDecimal)
+	NumEnter = Key(glfw.KeyKPEnter)
 }
 
 func NewImageObject(img *image.NRGBA) *ImageObject {
@@ -354,4 +366,11 @@ func LoadImage(data interface{}) Image {
 	draw.Draw(newm, newm.Bounds(), m, b.Min, draw.Src)
 
 	return &ImageObject{newm}
+}
+
+func WhitePixel() Image {
+	whitePixel := image.NewNRGBA(image.Rect(0, 0, 1, 1))
+	whitePixel.Pix = []uint8{255, 255, 255, 255}
+
+	return &ImageObject{whitePixel}
 }

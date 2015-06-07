@@ -131,28 +131,29 @@ type Region struct {
 	width, height float32
 }
 
-func NewRegion(texture *Texture, x, y, w, h int) *Region {
-	invTexWidth := 1.0 / float32(texture.Width())
-	invTexHeight := 1.0 / float32(texture.Height())
-
-	u := float32(x) * invTexWidth
-	v := float32(y) * invTexHeight
-	u2 := float32(x+w) * invTexWidth
-	v2 := float32(y+h) * invTexHeight
-	width := float32(math.Abs(float64(w)))
-	height := float32(math.Abs(float64(h)))
-
-	return &Region{texture, u, v, u2, v2, width, height}
+func (r *Region) Render(b *Batch, render *RenderComponent, space *SpaceComponent) {
+	r.texture.Render(b, render, space)
 }
 
-func (r *Region) UpdateTexture(tex *Texture) {
-	r.texture = tex
+func NewRegion(texture *Texture, x, y, w, h int) *Region {
+	var u, v, u2, v2, width, height, invTexWidth, invTexHeight float32
 
-	invTexWidth := 1.0 / float32(tex.Width())
-	invTexHeight := 1.0 / float32(tex.Height())
+	width = float32(math.Abs(float64(w)))
+	height = float32(math.Abs(float64(h)))
 
-	r.u2 = float32(r.width) * invTexWidth
-	r.v2 = float32(r.height) * invTexHeight
+	if texture == nil {
+		texture = NewEmptyTexture()
+	}
+
+	invTexWidth = 1.0 / float32(texture.Width())
+	invTexHeight = 1.0 / float32(texture.Height())
+
+	u = float32(x) * invTexWidth
+	v = float32(y) * invTexHeight
+	u2 = float32(x+w) * invTexWidth
+	v2 = float32(y+h) * invTexHeight
+
+	return &Region{texture, u, v, u2, v2, width, height}
 }
 
 func (r *Region) Width() float32 {
@@ -196,6 +197,21 @@ func NewTexture(img Image) *Texture {
 	return &Texture{id, img.Width(), img.Height()}
 }
 
+func NewEmptyTexture() *Texture {
+	id := gl.CreateTexture()
+	gl.BindTexture(gl.TEXTURE_2D, id)
+
+	whitePixel := WhitePixel()
+
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, whitePixel.Data())
+
+	return &Texture{id, 1, 1}
+}
+
+func (t *Texture) Render(b *Batch, render *RenderComponent, space *SpaceComponent) {
+	Wo.Batch().Draw(t, space.Position.X-Cam.pos.X, space.Position.Y-Cam.pos.Y, 0, 0, render.Scale.X, render.Scale.Y, 0, render.Color)
+}
+
 // Width returns the width of the texture.
 func (t *Texture) Width() float32 {
 	return float32(t.width)
@@ -219,8 +235,7 @@ type Sprite struct {
 	Scale    *Point
 	Anchor   *Point
 	Rotation float32
-	Color    uint32
-	Alpha    float32
+	Color    Color
 	Region   *Region
 }
 
@@ -230,28 +245,23 @@ func NewSprite(region *Region, x, y float32) *Sprite {
 		Scale:    &Point{1, 1},
 		Anchor:   &Point{0, 0},
 		Rotation: 0,
-		Color:    0xffffff,
-		Alpha:    1,
+		Color:    White,
 		Region:   region,
 	}
 }
 
 func (s *Sprite) Render(batch *Batch) {
-	batch.Draw(s.Region, s.Position.X, s.Position.Y, s.Anchor.X, s.Anchor.Y, s.Scale.X, s.Scale.Y, s.Rotation, s.Color, s.Alpha)
+	batch.Draw(s.Region, s.Position.X, s.Position.Y, s.Anchor.X, s.Anchor.Y, s.Scale.X, s.Scale.Y, s.Rotation, s.Color)
 }
 
 var batchVert = ` 
 attribute vec2 in_Position;
 attribute vec4 in_Color;
 attribute vec2 in_TexCoords;
-
 uniform vec2 uf_Projection;
-
 varying vec4 var_Color;
 varying vec2 var_TexCoords;
-
 const vec2 center = vec2(-1.0, 1.0);
-
 void main() {
   var_Color = in_Color;
   var_TexCoords = in_TexCoords;
@@ -267,12 +277,9 @@ precision mediump float;
 #else
 #define LOWP
 #endif
-
 varying vec4 var_Color;
 varying vec2 var_TexCoords;
-
 uniform sampler2D uf_Texture;
-
 void main (void) {
   gl_FragColor = var_Color * texture2D(uf_Texture, var_TexCoords);
 }`

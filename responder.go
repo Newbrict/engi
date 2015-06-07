@@ -11,9 +11,9 @@ type Responder interface {
 	Setup()
 	Close()
 	Update(dt float32)
-	MouseUpdate(x, y float32, action Action)
+	Mouse(x, y float32, action Action, btn MouseButton)
 	Scroll(amount float32)
-	Key(key Key, modifier Modifier, action Action)
+	Key(key Key, action Action, mod Modifier)
 	Type(char rune)
 	AddEntity(e *Entity)
 	Batch() *Batch
@@ -22,17 +22,37 @@ type Responder interface {
 
 type Game struct{}
 
-func (g *Game) Preload()                                {}
-func (g *Game) Setup()                                  {}
-func (g *Game) Close()                                  {}
-func (g *Game) Update(dt float32)                       {}
-func (g *Game) Render()                                 {}
-func (g *Game) Resize(w, h int)                         {}
-func (g *Game) MouseUpdate(x, y float32, action Action) {}
-func (g *Game) Scroll(amount float32)                   {}
-func (g *Game) Key(key Key, modifier Modifier, action Action) {
+func (g *Game) Preload()                                           {}
+func (g *Game) Setup()                                             {}
+func (g *Game) Close()                                             {}
+func (g *Game) Update(dt float32)                                  {}
+func (g *Game) Render()                                            {}
+func (g *Game) Resize(w, h int)                                    {}
+func (g *Game) Mouse(x, y float32, action Action, btn MouseButton) {}
+func (g *Game) Scroll(amount float32)                              {}
+func (g *Game) Key(key Key, action Action, mod Modifier) {
 	if key == Escape {
 		Exit()
+	} else if key == Backspace && action == PRESS {
+		for _, pnl := range GUI.InputPanels {
+			if pnl.Selected {
+				size := len(pnl.text)
+				if size > 0 {
+					pnl.SetText(pnl.text[:size-1])
+				} else if size == 0 {
+					pnl.SetText("")
+				}
+				break
+			}
+
+		}
 	}
 }
-func (g *Game) Type(char rune) {}
+func (g *Game) Type(char rune) {
+	for _, pnl := range GUI.InputPanels {
+		if pnl.Selected {
+			pnl.SetText(pnl.text + string(char))
+			break
+		}
+	}
+}

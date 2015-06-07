@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -43,14 +44,25 @@ type TMXPolyline struct {
 }
 
 type TMXObj struct {
-	X         int           `xml:"x,attr"`
-	Y         int           `xml:"y,attr"`
+	X         float64       `xml:"x,attr"`
+	Y         float64       `xml:"y,attr"`
 	Polylines []TMXPolyline `xml:"polyline"`
 }
 
 type TMXObjGroup struct {
 	Name    string   `xml:"name,attr"`
 	Objects []TMXObj `xml:"object"`
+}
+
+type TMXImgSrc struct {
+	Source string `xml:"source,attr"`
+}
+
+type TMXImgLayer struct {
+	Name   string    `xml:"name,attr"`
+	X      float64   `xml:"x,attr"`
+	Y      float64   `xml:"y,attr"`
+	ImgSrc TMXImgSrc `xml:"image"`
 }
 
 type TMXLevel struct {
@@ -61,6 +73,7 @@ type TMXLevel struct {
 	Tilesets   []TMXTileset  `xml:"tileset"`
 	Layers     []TMXLayer    `xml:"layer"`
 	ObjGroups  []TMXObjGroup `xml:"objectgroup"`
+	ImgLayers  []TMXImgLayer `xml:"imagelayer"`
 }
 
 type ByFirstgid []TMXTileset
@@ -147,7 +160,47 @@ func createLevelFromTmx(r Resource) (*Level, error) {
 
 	lvl.Tiles = createLevelTiles(lvl, lvlLayers, lvlTileset)
 
+	for _, o := range tlvl.ObjGroups[0].Objects {
+		p := o.Polylines[0].Points
+		lvl.LineBounds = append(lvl.LineBounds, pointStringToLines(p, o.X, o.Y)...)
+	}
+
+	for i := 0; i < len(tlvl.ImgLayers); i++ {
+		curImg := Files.Image(path.Base(tlvl.ImgLayers[i].ImgSrc.Source))
+		curX := float32(tlvl.ImgLayers[i].X)
+		curY := float32(tlvl.ImgLayers[i].Y)
+		reg := NewRegion(curImg, 0, 0, curImg.width, curImg.height)
+		lvl.Images = append(lvl.Images, &tile{Point{curX, curY}, reg})
+	}
+
 	return lvl, nil
+}
+
+func pointStringToLines(str string, xOff, yOff float64) []Line {
+	pts := strings.Split(str, " ")
+	floatPts := make([][]float64, len(pts))
+	for i, x := range pts {
+		pt := strings.Split(x, ",")
+		floatPts[i] = make([]float64, 2)
+		floatPts[i][0], _ = strconv.ParseFloat(pt[0], 64)
+		floatPts[i][1], _ = strconv.ParseFloat(pt[1], 64)
+	}
+
+	lines := make([]Line, len(floatPts)-1)
+
+	// Now to globalize line coordinates
+	for i := 0; i < len(floatPts)-1; i++ {
+		x1 := float32(floatPts[i][0] + xOff)
+		y1 := float32(floatPts[i][1] + yOff)
+		x2 := float32(floatPts[i+1][0] + xOff)
+		y2 := float32(floatPts[i+1][1] + yOff)
+		p1 := Point{x1, y1}
+		p2 := Point{x2, y2}
+		newLine := Line{p1, p2}
+		lines = append(lines, newLine)
+	}
+
+	return lines
 }
 
 func readTmx(url string) (string, error) {

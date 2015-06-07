@@ -1,165 +1,271 @@
 package engi
 
-type Panel struct {
-	Point
-	r        *Region
-	Bg       uint32
-	Parent   *Panel
-	Children []*Panel
+//TODO: need to reposition panels on resize
+
+// Constants for each edge of game window.
+const (
+	LEFT int = iota
+	TOP
+	RIGHT
+	BOTTOM
+)
+
+var (
+	White Color = Color{255, 255, 255, 255}
+	Black Color = Color{0, 0, 0, 255}
+	Red   Color = Color{255, 0, 0, 255}
+	Green Color = Color{0, 255, 0, 255}
+	Blue  Color = Color{0, 0, 255, 255}
+)
+
+type Graphical interface {
+	Draw(*Batch)
+	Update()
+	SetParent(Graphical)
+	GetPanel() *Panel
 }
 
+type Gui struct {
+	*Panel
+	InputPanels []*InputPanel
+}
+
+func (gui *Gui) Render(b *Batch, render *RenderComponent, space *SpaceComponent) {
+	drawChildren(gui.Children)
+}
+
+func NewGui() *Gui {
+	panel := &Panel{
+		Point:    Point{},
+		Region:   &Region{},
+		BG:       Color{},
+		Visible:  true,
+		Parent:   nil,
+		Children: make([]Graphical, 0),
+	}
+
+	return &Gui{
+		Panel:       panel,
+		InputPanels: make([]*InputPanel, 0),
+	}
+}
+
+// A Mouse represents the state of the current input mouse.
 type Mouse struct {
-	Point
-	Left, Right, Click bool
+	Point                           // position of cursor relative to game window
+	Left, Right, Middle, Click bool // flags for input
 }
 
-func NewPanel(x, y float32, w, h int) *Panel {
+// A Panel represents a region with a parent and children.
+type Panel struct {
+	Point                   // absolute position
+	*Region                 // region to be rendered
+	BG          Color       // background color of region
+	Visible     bool        // visibility of panel
+	Transparent int         // transparency
+	Parent      Graphical   // parent panel
+	Children    []Graphical // slice containing children panels
+}
 
-	region := NewRegion(Files.Image("color.png"), 0, 0, w, h)
-	point := Point{x, y}
+// NewPanel returns a new panel with a region of width
+// w, height h and position 0, 0.  The texture of this
+// region is set to a white pixel in order to be colored.
+// The new panel is also appended to the children slice of
+// the global gui struct.
+func NewPanel(w, h int) *Panel {
 
-	newPanel := &Panel{point, region, 0xFFFFFF, nil, make([]*Panel, 0)}
+	region := NewRegion(nil, 0, 0, w, h)
 
-	panel := NewEntity([]string{"RenderSystem"})
-	panelRender := NewRenderComponent(newPanel, Point{1, 1}, "panel")
-	panelSpace := SpaceComponent{newPanel.Point, 0, 0}
-	panel.AddComponent(&panelRender)
-	panel.AddComponent(&panelSpace)
+	newPanel := &Panel{
+		Point:    Point{},
+		Region:   region,
+		BG:       White,
+		Visible:  true,
+		Parent:   GUI.Panel,
+		Children: make([]Graphical, 0),
+	}
 
-	Wo.AddEntity(panel)
+	gPnls := &GUI.Children
+	*gPnls = append(*gPnls, newPanel)
 
 	return newPanel
 }
 
-func (p *Panel) SetParent(parent *Panel) {
-	p.Parent = parent
-	parent.Children = append(parent.Children, p)
-
-	p.Point = Point{0, 0}
-}
-
-func (p *Panel) SetTexture(tex *Texture) {
-	if tex != p.r.texture {
-		p.r.UpdateTexture(tex)
-	}
-}
-
-/*
-func (p *Panel) SetText( text string ) {
-
-	txtFont := NewGridFont(Files.Image("font.png"), 20, 20)
-	txt := NewText( text, txtFont )
-
-	txtEnt := NewEntity([]string{"RenderSystem"})
-	txtRender := NewRenderComponent(txt, Point{1, 1}, "text")
-	txtSpace := SpaceComponent{p.Point, 0, 0}
-
-	txtEnt.AddComponent(&txtRender)
-	txtEnt.AddComponent(&txtSpace)
-
-	p.txt = txt
-	Wo.AddEntity(txtEnt)
-}
-*/
-func (p *Panel) SizeToContainer() {
-	invTexWidth := 1.0 / p.r.width
-	invTexHeight := 1.0 / p.r.height
-	//u := float32(x) * invTexWidth
-	//v := float32(y) * invTexHeight
-	p.r.u2 = (float32(p.r.width) + p.Point.X) * invTexWidth
-	p.r.v2 = (float32(p.r.height) + p.Point.Y) * invTexHeight
-}
-
-func (p *Panel) SizeToContents() {
-	p.r.width = p.r.texture.Width()
-	p.r.height = p.r.texture.Height()
-
-	p.SizeToContainer()
-}
-
-func (p Panel) Width() float32 {
-	return p.r.Height()
-}
-
-func (p Panel) Height() float32 {
-	return p.r.Width()
-}
-
-func (p *Panel) SetPos(x, y float32) {
-	p.Point = Point{x, y}
-}
-
-func (p *Panel) Align(edge int) {
-
-	if p.Parent == nil {
-		switch edge {
-		case 1:
-			p.Point.X = 0
-		case 2:
-			p.Point.Y = 0
-		case 3:
-			p.Point.X = Width()
-		case 4:
-			p.Point.Y = Height()
+// DrawChildren draws each child by traversing
+// through all the children of each parent.
+func drawChildren(children []Graphical) {
+	for _, child := range children {
+		pnl := child.GetPanel()
+		if pnl.Visible {
+			child.Draw(Wo.Batch())
+			drawChildren(pnl.Children)
 		}
-	} else {
-		switch edge {
-		case 1:
-			p.Point.X = 0
-		case 2:
-			p.Point.Y = 0
-		case 3:
-			p.Point.X = p.Parent.r.width
-		case 4:
-			p.Point.Y = p.Parent.r.height
-		}
-
 	}
 }
 
-func (p *Panel) AlignOff(edge int, off float32) {
-
-	if p.Parent == nil {
-		switch edge {
-		case 1:
-			p.Point.X = 0 + off
-		case 2:
-			p.Point.Y = 0 + off
-		case 3:
-			p.Point.X = Width() - off
-		case 4:
-			p.Point.Y = Height() - off
+func panelPosition(child Graphical, children []Graphical) int {
+	for i, pnl := range children {
+		if pnl == child {
+			return i
 		}
-	} else {
-		switch edge {
-		case 1:
-			p.Point.X = off
-		case 2:
-			p.Point.Y = off
-		case 3:
-			p.Point.X = p.Parent.r.width - off
-		case 4:
-			p.Point.Y = p.Parent.r.height - off
-		}
+	}
+	return -1
+}
 
+func removeFromParent(child Graphical) {
+	pnl := child.GetPanel()
+	pC := &pnl.Parent.GetPanel().Children
+	cI := panelPosition(child, *pC)
+	*pC = append((*pC)[:cI], (*pC)[cI+1:]...)
+}
+
+// SetParent sets the parent panel and also
+// appends to the children slice of parent.
+// The panel is also removed from the previous
+// parents child slice.  Position is set
+// to 0,0 relative to parent.
+func (pnl *Panel) SetParent(graph Graphical) {
+
+	removeFromParent(pnl)
+
+	pnl.Parent = graph
+	parent := graph.GetPanel()
+
+	npC := &parent.GetPanel().Children
+	*npC = append(*npC, pnl)
+
+	pnl.Point = parent.Point
+}
+
+// SetTexture sets the texture of the panels region
+// without modifiying the textures rendered dimensions.
+func (pnl *Panel) SetTexture(tex *Texture) {
+	pnl.texture = tex
+
+	invTexWidth := 1.0 / float32(tex.Width())
+	invTexHeight := 1.0 / float32(tex.Height())
+
+	pnl.u2 = float32(pnl.width) * invTexWidth
+	pnl.v2 = float32(pnl.height) * invTexHeight
+}
+
+// SetPos sets the position relative to parent.
+// All of the panels childrens positions are also
+// updated relative to the panel.
+func (pnl *Panel) SetPos(x, y float32) {
+	parent := pnl.Parent.GetPanel()
+	pnl.Point = Point{parent.X + x, parent.Y + y}
+
+	for _, child := range pnl.Children {
+		childPanel := child.GetPanel()
+
+		childPanel.X += pnl.X
+		childPanel.Y += pnl.Y
 	}
 }
 
-func (p *Panel) Center() {
-	var x, y float32
-
-	if p.Parent == nil {
-		x = Width()/2.0 - p.r.width/2.0
-		y = Height()/2.0 - p.r.height/2.0
-	} else {
-		x = p.Parent.r.width/2.0 - p.r.width/2.0
-		y = p.Parent.r.height/2.0 - p.r.height/2.0
-	}
-	p.Point = Point{x, y}
+func (pnl *Panel) SetSize(width, height float32) {
+	pnl.width = width
+	pnl.height = height
 }
 
-func (p *Panel) SetBg(color uint32) {
-	if p.Bg != color {
-		p.Bg = color
+// SizeToContainer sizes the current texture
+// to the width and height of the panel.
+func (pnl *Panel) SizeToContainer() {
+	invTexWidth := 1.0 / float32(pnl.width)
+	invTexHeight := 1.0 / float32(pnl.height)
+
+	pnl.u2 = float32(pnl.width) * invTexWidth
+	pnl.v2 = float32(pnl.height) * invTexHeight
+}
+
+// SizeToContents sizes the panel to the size of its texture.
+func (pnl *Panel) SizeToContents() {
+	pnl.width = pnl.texture.Width()
+	pnl.height = pnl.texture.Height()
+
+	pnl.SizeToContainer()
+}
+
+// Align aligns the panel to the edge of its parent.
+func (pnl *Panel) Align(edge int) {
+
+	x, y := pnl.Pos()
+	parent := pnl.Parent.GetPanel()
+
+	switch edge {
+	case LEFT:
+		x = 0
+	case TOP:
+		y = 0
+	case RIGHT:
+		x = parent.width - pnl.width
+	case BOTTOM:
+		y = parent.height - pnl.height
 	}
+	pnl.SetPos(x, y)
+}
+
+// AlignOff aligns the panel to the edge of its parent.
+func (pnl *Panel) AlignOff(edge int, off float32) {
+
+	x, y := pnl.Pos()
+	parent := pnl.Parent.GetPanel()
+
+	switch edge {
+	case LEFT:
+		x = off
+	case TOP:
+		y = off
+	case RIGHT:
+		x = (parent.width - pnl.width) - off
+	case BOTTOM:
+		y = (parent.height - pnl.height) - off
+
+	}
+	pnl.SetPos(x, y)
+}
+
+// Center sets the position of the panel to the center of its parent.
+func (pnl *Panel) Center() {
+
+	parent := pnl.Parent.GetPanel()
+
+	x := parent.width/2.0 - pnl.width/2.0
+	y := parent.height/2.0 - pnl.height/2.0
+
+	pnl.SetPos(x, y)
+}
+
+func (pnl *Panel) SetBg(color Color) {
+	pnl.BG = color
+}
+
+func (pnl *Panel) Width() float32 {
+	return pnl.width
+}
+
+func (pnl *Panel) Height() float32 {
+	return pnl.height
+}
+
+// Pos returns the panels position relative to its parent.
+func (pnl *Panel) Pos() (x, y float32) {
+	parent := pnl.Parent.GetPanel()
+	x = pnl.X - parent.X
+	y = pnl.Y - parent.Y
+
+	return x, y
+}
+
+func (pnl *Panel) Draw(batch *Batch) {
+	batch.Draw(pnl, pnl.X, pnl.Y, 0, 0, 1, 1, 0, pnl.BG)
+}
+
+func (pnl *Panel) GetPanel() *Panel {
+	return pnl
+}
+
+func (pnl *Panel) Update() {
+
 }

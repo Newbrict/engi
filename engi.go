@@ -7,15 +7,17 @@ package engi
 import "github.com/ajhager/webgl"
 
 var (
-	responder Responder
-	Time      *Clock
-	Files     *Loader
-	gl        *webgl.Context
-	Mailbox   MessageManager
-	Gl        = gl
-	Cam       *Camera
-	Wo        Responder
-	Cursor    *Mouse
+	responder   Responder
+	Time        *Clock
+	Files       *Loader
+	gl          *webgl.Context
+	Mailbox     MessageManager
+	Gl          = gl
+	Cam         *Camera
+	Wo          Responder
+	Cursor      *Mouse
+	GUI         *Gui
+	WorldBounds AABB
 )
 
 func Open(title string, width, height int, fullscreen bool, r Responder) {
@@ -25,6 +27,7 @@ func Open(title string, width, height int, fullscreen bool, r Responder) {
 	Files = NewLoader()
 	SetCamera(&Camera{})
 	Wo = r
+	GUI = NewGui()
 	Cursor = &Mouse{}
 	run(title, width, height, fullscreen)
 }
