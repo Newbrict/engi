@@ -109,7 +109,7 @@ func (f *Font) Render(text string) *Texture {
 	// Create the font context
 	c := freetype.NewContext()
 
-	nrgba := image.NewNRGBA(image.Rect(0, 0, width, height))
+	nrgba := image.NewNRGBA(image.Rect(0, 0, width+5, height))
 	draw.Draw(nrgba, nrgba.Bounds(), bg, image.ZP, draw.Src)
 
 	c.SetDPI(dpi)
