@@ -23,13 +23,28 @@ import (
 var (
 	window *glfw.Window
 
-	Arrow     *glfw.Cursor
-	IBeam     *glfw.Cursor
-	Crosshair *glfw.Cursor
-	Hand      *glfw.Cursor
-	HResize   *glfw.Cursor
-	VResize   *glfw.Cursor
+	Arrow *glfw.Cursor
+	Hand  *glfw.Cursor
+	IBeam *glfw.Cursor
 )
+
+// Constants for each cursor type.
+const (
+	ARROW = iota
+	HAND
+	IBEAM
+)
+
+func SetCursor(cursor int) {
+	switch cursor {
+	case ARROW:
+		window.SetCursor(Arrow)
+	case HAND:
+		window.SetCursor(Hand)
+	case IBEAM:
+		window.SetCursor(IBeam)
+	}
+}
 
 // fatalErr calls log.Fatal with the given error if it is non-nil.
 func fatalErr(err error) {
@@ -46,6 +61,7 @@ func run(title string, width, height int, fullscreen bool) {
 	defer glfw.Terminate()
 
 	Arrow = glfw.CreateStandardCursor(int(glfw.ArrowCursor))
+	IBeam = glfw.CreateStandardCursor(int(glfw.IBeamCursor))
 	Hand = glfw.CreateStandardCursor(int(glfw.HandCursor))
 
 	monitor := glfw.GetPrimaryMonitor()

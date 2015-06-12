@@ -36,11 +36,11 @@ func (g *Game) Key(key Key, action Action, mod Modifier) {
 	} else if key == Backspace && action == PRESS {
 		for _, pnl := range GUI.InputPanels {
 			if pnl.Selected {
-				size := len(pnl.text)
+				size := len(pnl.TextPanel.text)
 				if size > 0 {
-					pnl.SetText(pnl.text[:size-1])
+					pnl.TextPanel.SetText(pnl.TextPanel.text[:size-1])
 				} else if size == 0 {
-					pnl.SetText("")
+					pnl.TextPanel.SetText("")
 				}
 				break
 			}
@@ -51,7 +51,7 @@ func (g *Game) Key(key Key, action Action, mod Modifier) {
 func (g *Game) Type(char rune) {
 	for _, pnl := range GUI.InputPanels {
 		if pnl.Selected {
-			pnl.SetText(pnl.text + string(char))
+			pnl.TextPanel.SetText(pnl.TextPanel.text + string(char))
 			break
 		}
 	}

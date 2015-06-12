@@ -12,7 +12,6 @@ type TextPanel struct {
 // The new panel is also appended to the children slice of
 // the global gui struct.
 func NewTextPanel(w, h int) *TextPanel {
-
 	// should be replaced by newfont
 	fg := Color{0x00, 0x00, 0x00, 0xFF}
 	bg := Color{0x00, 0x00, 0x00, 0x00}
@@ -38,10 +37,8 @@ func NewTextPanel(w, h int) *TextPanel {
 }
 
 func (tp *TextPanel) RenderText() {
-	if tp.text != "" {
-		tex := tp.font.Render(tp.text)
-		tp.SetTexture(tex)
-	}
+	tex := tp.font.Render(tp.text)
+	tp.SetTexture(tex)
 }
 
 // SetParent sets the parent panel and also
@@ -50,7 +47,6 @@ func (tp *TextPanel) RenderText() {
 // parents child slice.  Position is set
 // to 0,0 relative to parent.
 func (tp *TextPanel) SetParent(graph Graphical) {
-
 	removeFromParent(tp)
 
 	tp.Parent = graph

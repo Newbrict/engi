@@ -4,11 +4,12 @@ import "time"
 
 // A InputPanel represents a Panel which responds to text input from the keyboard.
 type InputPanel struct {
-	*TextPanel
-	Blinker  *Panel
-	Button   *ButtonPanel
-	Selected bool
-	ticker   *time.Ticker
+	*Panel
+	TextPanel *TextPanel
+	Blinker   *Panel
+	Button    *ButtonPanel
+	Selected  bool
+	ticker    *time.Ticker
 }
 
 // NewInputPanel returns a new panel with a region of width
@@ -17,16 +18,17 @@ type InputPanel struct {
 // The new panel is also appended to the children slice of
 // the global gui struct.
 func NewInputPanel(w, h int) *InputPanel {
+	newPanel := NewPanel(w, h)
+	removeFromParent(newPanel)
 
 	newtxtPanel := NewTextPanel(w, h)
 	newtxtPanel.SetSize(float64(h))
-
-	removeFromParent(newtxtPanel)
 
 	newBlinker := NewPanel(1, h-2)
 	newButton := NewButtonPanel(w, h)
 
 	newinputPanel := &InputPanel{
+		Panel:     newPanel,
 		TextPanel: newtxtPanel,
 		Blinker:   newBlinker,
 		Button:    newButton,
@@ -34,15 +36,19 @@ func NewInputPanel(w, h int) *InputPanel {
 		ticker:    nil,
 	}
 
-	newinputPanel.SetFg(Color{0x00, 0x00, 0x00, 0xFF})
-	newinputPanel.SetBg(Color{0xFF, 0xFF, 0xFF, 0xFF})
-
+	newtxtPanel.SetParent(newinputPanel)
 	newBlinker.SetParent(newinputPanel)
+	newButton.SetParent(newinputPanel)
+
+	newtxtPanel.SetFg(Color{0x00, 0x00, 0x00, 0xFF})
+	newtxtPanel.SetBg(Color{0x00, 0x00, 0x00, 0x00})
+	newtxtPanel.SetPos(0, 5)
+
 	newBlinker.SetBg(Black)
 	newBlinker.BG.A = 0
 
-	newButton.SetParent(newinputPanel)
 	newButton.BG.A = 0
+	newButton.Cursor = IBEAM
 	newButton.DoClick = func() {
 		if !newinputPanel.Selected {
 			ticker := time.NewTicker(time.Millisecond * 700)
@@ -80,7 +86,6 @@ func NewInputPanel(w, h int) *InputPanel {
 // appends to the children slice of parent.
 // Position is set to 0,0 relative to parent.
 func (ip *InputPanel) SetParent(graph Graphical) {
-
 	removeFromParent(ip)
 
 	ip.Parent = graph
@@ -98,16 +103,16 @@ func (ip *InputPanel) Draw(batch *Batch) {
 }
 
 func (ip *InputPanel) Update() {
-	if ip.text != "" {
-		texWidth := float32(ip.texture.width) - 2
-		//ip.width = texWidth
-		x, y := ip.Blinker.Pos()
-		if x != texWidth {
-			ip.Blinker.SetPos(texWidth, y)
-		}
+	x, y := ip.Blinker.Pos()
+	texWidth := float32(ip.TextPanel.texture.width)
+
+	if x != texWidth && texWidth <= ip.Width() {
+		ip.Blinker.SetPos(texWidth, y)
+	} else if texWidth >= ip.Width() && x != ip.Width()-2 {
+		ip.Blinker.SetPos(ip.Width()-2, y)
 	}
 
-	if !ip.Button.Hovered() && ip.ticker != nil && ip.Selected && Cursor.Left {
+	if !ip.Button.Hovering() && ip.ticker != nil && ip.Selected && Cursor.Left {
 		ip.Selected = false
 		ip.ticker.Stop()
 		ip.Blinker.BG.A = 0

@@ -1,7 +1,5 @@
 package engi
 
-//TODO: need to reposition panels on resize
-
 // Constants for each edge of game window.
 const (
 	LEFT int = iota
@@ -23,6 +21,23 @@ type Graphical interface {
 	Update()
 	SetParent(Graphical)
 	GetPanel() *Panel
+}
+
+// A Mouse represents the state of the current input mouse.
+type Mouse struct {
+	Point                           // position of cursor relative to game window
+	Left, Right, Middle, Click bool // flags for input
+}
+
+// A Panel represents a region with a parent and children.
+type Panel struct {
+	Point                   // absolute position
+	*Region                 // region to be rendered
+	BG          Color       // background color of region
+	Visible     bool        // visibility of panel
+	Transparent int         // transparency
+	Parent      Graphical   // parent panel
+	Children    []Graphical // slice containing children panels
 }
 
 type Gui struct {
@@ -50,30 +65,12 @@ func NewGui() *Gui {
 	}
 }
 
-// A Mouse represents the state of the current input mouse.
-type Mouse struct {
-	Point                           // position of cursor relative to game window
-	Left, Right, Middle, Click bool // flags for input
-}
-
-// A Panel represents a region with a parent and children.
-type Panel struct {
-	Point                   // absolute position
-	*Region                 // region to be rendered
-	BG          Color       // background color of region
-	Visible     bool        // visibility of panel
-	Transparent int         // transparency
-	Parent      Graphical   // parent panel
-	Children    []Graphical // slice containing children panels
-}
-
 // NewPanel returns a new panel with a region of width
 // w, height h and position 0, 0.  The texture of this
 // region is set to a white pixel in order to be colored.
 // The new panel is also appended to the children slice of
 // the global gui struct.
 func NewPanel(w, h int) *Panel {
-
 	region := NewRegion(nil, 0, 0, w, h)
 
 	newPanel := &Panel{
@@ -91,8 +88,7 @@ func NewPanel(w, h int) *Panel {
 	return newPanel
 }
 
-// DrawChildren draws each child by traversing
-// through all the children of each parent.
+// DrawChildren draws each child by traversing through all the children of each parent.
 func drawChildren(children []Graphical) {
 	for _, child := range children {
 		pnl := child.GetPanel()
@@ -103,6 +99,7 @@ func drawChildren(children []Graphical) {
 	}
 }
 
+// panelPosition returns the index of child in its parent slice.
 func panelPosition(child Graphical, children []Graphical) int {
 	for i, pnl := range children {
 		if pnl == child {
@@ -125,7 +122,6 @@ func removeFromParent(child Graphical) {
 // parents child slice.  Position is set
 // to 0,0 relative to parent.
 func (pnl *Panel) SetParent(graph Graphical) {
-
 	removeFromParent(pnl)
 
 	pnl.Parent = graph
@@ -154,13 +150,14 @@ func (pnl *Panel) SetTexture(tex *Texture) {
 // updated relative to the panel.
 func (pnl *Panel) SetPos(x, y float32) {
 	parent := pnl.Parent.GetPanel()
+
+	oldPos := pnl.Point
 	pnl.Point = Point{parent.X + x, parent.Y + y}
 
 	for _, child := range pnl.Children {
 		childPanel := child.GetPanel()
 
-		childPanel.X += pnl.X
-		childPanel.Y += pnl.Y
+		childPanel.SetPos(childPanel.X-oldPos.X, childPanel.Y-oldPos.Y)
 	}
 }
 
@@ -189,26 +186,11 @@ func (pnl *Panel) SizeToContents() {
 
 // Align aligns the panel to the edge of its parent.
 func (pnl *Panel) Align(edge int) {
-
-	x, y := pnl.Pos()
-	parent := pnl.Parent.GetPanel()
-
-	switch edge {
-	case LEFT:
-		x = 0
-	case TOP:
-		y = 0
-	case RIGHT:
-		x = parent.width - pnl.width
-	case BOTTOM:
-		y = parent.height - pnl.height
-	}
-	pnl.SetPos(x, y)
+	pnl.AlignOff(edge, 0)
 }
 
 // AlignOff aligns the panel to the edge of its parent.
 func (pnl *Panel) AlignOff(edge int, off float32) {
-
 	x, y := pnl.Pos()
 	parent := pnl.Parent.GetPanel()
 
@@ -223,12 +205,12 @@ func (pnl *Panel) AlignOff(edge int, off float32) {
 		y = (parent.height - pnl.height) - off
 
 	}
+
 	pnl.SetPos(x, y)
 }
 
 // Center sets the position of the panel to the center of its parent.
 func (pnl *Panel) Center() {
-
 	parent := pnl.Parent.GetPanel()
 
 	x := parent.width/2.0 - pnl.width/2.0
