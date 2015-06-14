@@ -23,26 +23,26 @@ import (
 var (
 	window *glfw.Window
 
-	Arrow *glfw.Cursor
-	Hand  *glfw.Cursor
-	IBeam *glfw.Cursor
+	arrowCursor *glfw.Cursor
+	handCursor  *glfw.Cursor
+	ibeamCursor *glfw.Cursor
 )
 
 // Constants for each cursor type.
 const (
-	ARROW = iota
-	HAND
-	IBEAM
+	ArrowCursor = iota
+	HandCursor
+	IBeamCursor
 )
 
 func SetCursor(cursor int) {
 	switch cursor {
-	case ARROW:
-		window.SetCursor(Arrow)
-	case HAND:
-		window.SetCursor(Hand)
-	case IBEAM:
-		window.SetCursor(IBeam)
+	case ArrowCursor:
+		window.SetCursor(arrowCursor)
+	case HandCursor:
+		window.SetCursor(handCursor)
+	case IBeamCursor:
+		window.SetCursor(ibeamCursor)
 	}
 }
 
@@ -60,9 +60,9 @@ func run(title string, width, height int, fullscreen bool) {
 
 	defer glfw.Terminate()
 
-	Arrow = glfw.CreateStandardCursor(int(glfw.ArrowCursor))
-	IBeam = glfw.CreateStandardCursor(int(glfw.IBeamCursor))
-	Hand = glfw.CreateStandardCursor(int(glfw.HandCursor))
+	arrowCursor = glfw.CreateStandardCursor(int(glfw.ArrowCursor))
+	ibeamCursor = glfw.CreateStandardCursor(int(glfw.IBeamCursor))
+	handCursor = glfw.CreateStandardCursor(int(glfw.HandCursor))
 
 	monitor := glfw.GetPrimaryMonitor()
 	mode := monitor.GetVideoMode()

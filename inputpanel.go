@@ -48,7 +48,7 @@ func NewInputPanel(w, h int) *InputPanel {
 	newBlinker.BG.A = 0
 
 	newButton.BG.A = 0
-	newButton.Cursor = IBEAM
+	newButton.Cursor = IBeamCursor
 	newButton.DoClick = func() {
 		if !newinputPanel.Selected {
 			ticker := time.NewTicker(time.Millisecond * 700)

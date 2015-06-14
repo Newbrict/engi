@@ -32,7 +32,7 @@ func NewButtonPanel(w, h int) *ButtonPanel {
 		DoHover:    doHover,
 		DoOffHover: dooffHover,
 		DoClick:    doClick,
-		Cursor:     HAND,
+		Cursor:     HandCursor,
 	}
 
 	gPnls := &GUI.Children
@@ -96,7 +96,7 @@ func (btn *ButtonPanel) Update() {
 	} else {
 		if btn.hovered {
 			btn.DoOffHover()
-			SetCursor(ARROW)
+			SetCursor(ArrowCursor)
 			btn.hovered = false
 		}
 	}
