@@ -79,7 +79,6 @@ func (btn *ButtonPanel) SetParent(graph Graphical) {
 }
 
 func (btn *ButtonPanel) Update() {
-
 	if btn.Hovering() {
 		if Cursor.Left && !Cursor.Click {
 			btn.DoClick()
