@@ -23,6 +23,7 @@ import (
 var (
 	window *glfw.Window
 
+	// Glfw standard cursor types
 	arrowCursor *glfw.Cursor
 	handCursor  *glfw.Cursor
 	ibeamCursor *glfw.Cursor
